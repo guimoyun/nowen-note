@@ -78,6 +78,11 @@
       "verifyFailed": "Invalid code",
       "ticketExpired": "Two-factor session expired. Please sign in again.",
       "backToLogin": "← Back to password login"
+    },
+    "demoBanner": {
+      "title": "Demo environment",
+      "desc": "Try it out with the demo account {{username}} / {{password}}. Data may be reset periodically.",
+      "fillButton": "Fill demo credentials"
     }
   },
   "sidebar": {
