@@ -21,37 +21,64 @@ function inferTargetPlatformFromArgv() {
 }
 
 /**
- * 通过文件魔数识别 .node 目标平台，避免 stamp 被错误标注时假通过。
- *   Windows PE:   "MZ"
- *   Linux ELF:    "\x7FELF"
+ * 通过文件魔数识别 .node 目标平台 + 架构，避免 stamp 被错误标注时假通过。
+ *   Windows PE:   "MZ"（不解析 arch，Win 我们只发 x64）
+ *   Linux ELF:    "\x7FELF"，第 19 字节 e_machine 区分 x86_64(0x3E)/aarch64(0xB7)
  *   macOS Mach-O: 0xFEEDFACE/0xCEFAEDFE/0xFEEDFACF/0xCFFAEDFE/0xCAFEBABE
+ *                 magic 后紧跟 cputype（CPU_TYPE_X86_64=0x01000007 / CPU_TYPE_ARM64=0x0100000C）
+ *                 0xCAFEBABE 是 fat binary，含 x64+arm64，arch 返回 "universal"
+ *
+ * 返回 { platform, arch }，识别不出来对应字段为 "unknown"。
  */
 function detectNodeFilePlatform(nodeFile) {
   try {
     const fd = fs.openSync(nodeFile, "r");
-    const buf = Buffer.alloc(4);
-    fs.readSync(fd, buf, 0, 4, 0);
+    const buf = Buffer.alloc(20);
+    fs.readSync(fd, buf, 0, 20, 0);
     fs.closeSync(fd);
-    if (buf[0] === 0x4d && buf[1] === 0x5a) return "win32";
+    // Windows PE
+    if (buf[0] === 0x4d && buf[1] === 0x5a) {
+      return { platform: "win32", arch: "x64" }; // 我们只发 x64，简化
+    }
+    // Linux ELF
     if (
       buf[0] === 0x7f &&
       buf[1] === 0x45 &&
       buf[2] === 0x4c &&
       buf[3] === 0x46
-    )
-      return "linux";
+    ) {
+      // ELF e_machine 在 LE 下位于 offset 0x12
+      const eMachine = buf.readUInt16LE(0x12);
+      const arch =
+        eMachine === 0x3e ? "x64" : eMachine === 0xb7 ? "arm64" : "unknown";
+      return { platform: "linux", arch };
+    }
+    // macOS Mach-O
     const m = buf.readUInt32BE(0);
+    if (m === 0xcafebabe) {
+      // fat binary，含多架构
+      return { platform: "darwin", arch: "universal" };
+    }
     if (
       m === 0xfeedface ||
       m === 0xcefaedfe ||
       m === 0xfeedfacf ||
-      m === 0xcffaedfe ||
-      m === 0xcafebabe
-    )
-      return "darwin";
-    return "unknown";
+      m === 0xcffaedfe
+    ) {
+      // little-endian (CEFAEDFE/CFFAEDFE) 时 cputype 用 readUInt32LE，否则 BE
+      const isLE = m === 0xcefaedfe || m === 0xcffaedfe;
+      const cputype = isLE ? buf.readUInt32LE(4) : buf.readUInt32BE(4);
+      const arch =
+        cputype === 0x01000007
+          ? "x64"
+          : cputype === 0x0100000c
+            ? "arm64"
+            : "unknown";
+      return { platform: "darwin", arch };
+    }
+    return { platform: "unknown", arch: "unknown" };
   } catch {
-    return "unknown";
+    return { platform: "unknown", arch: "unknown" };
   }
 }
 
@@ -129,20 +156,36 @@ function checkNativeModule() {
     );
   }
 
-  // 文件魔数兜底校验（stamp 可能被手工改过）
+  // 文件魔数兜底校验（stamp 可能被手工改过 / rebuild-native 漏写 arch 字段）
+  // 历史教训（2026-05 mac Intel ERR_DLOPEN_FAILED）：mac 同时打 arm64+x64 时，
+  // 仅靠 stamp 校验，arm64 包里会塞着 x64 的 .node。所以这里 platform + arch 都要查。
   const detected = detectNodeFilePlatform(nodeFile);
-  const expectDetected =
+  const expectPlatform =
     targetPlatform === "win32"
       ? "win32"
       : targetPlatform === "darwin"
         ? "darwin"
         : "linux";
-  if (detected !== expectDetected) {
+  if (detected.platform !== expectPlatform) {
     throw new Error(
       `[builder] ✗ better_sqlite3.node 文件格式不匹配目标平台！\n` +
-        `   expected (by magic) : ${expectDetected}\n` +
-        `   actual               : ${detected}\n` +
+        `   expected (by magic) : ${expectPlatform}\n` +
+        `   actual               : ${detected.platform}\n` +
         `   这份 .node 打进安装包后会报 ERR_DLOPEN_FAILED / "not a valid Win32 application"。\n` +
+        `   修复：npm run rebuild:native -- --target-platform=${targetPlatform} --target-arch=${targetArch}`
+    );
+  }
+  // arch 校验：universal（fat binary）算兼容；其余必须严格相等
+  if (
+    detected.arch !== "universal" &&
+    detected.arch !== "unknown" &&
+    detected.arch !== targetArch
+  ) {
+    throw new Error(
+      `[builder] ✗ better_sqlite3.node 的 CPU 架构与打包目标不匹配！\n` +
+        `   expected (by magic) : ${targetPlatform}-${targetArch}\n` +
+        `   actual               : ${detected.platform}-${detected.arch}\n` +
+        `   这份 .node 打进 ${targetPlatform}-${targetArch} 安装包后会报 ERR_DLOPEN_FAILED。\n` +
         `   修复：npm run rebuild:native -- --target-platform=${targetPlatform} --target-arch=${targetArch}`
     );
   }
@@ -388,9 +431,23 @@ module.exports = {
     artifactName: "${productName}-${version}-portable.${ext}",
   },
   mac: {
+    // ==== mac 架构选择 ====
+    // 历史教训（2026-05 Intel Mac ERR_DLOPEN_FAILED）：
+    //   原配置 arch: ["arm64", "x64"]，electron-builder 一次构建会同时输出
+    //   两份 dmg/zip，但 backend/node_modules/better-sqlite3 只能 rebuild 出
+    //   一种架构的 .node；另一架构的安装包打开就 dlopen 失败。
+    // 修复：每次只打一个架构，由外层脚本 (release.sh) 跑两遍，每次先
+    //   `rebuild:native --target-arch=<arch>` 再 electron-builder。
+    // 通过环境变量 NOWEN_MAC_ARCH=x64|arm64 控制；默认 x64（覆盖 Intel + 走 Rosetta）。
     target: [
-      { target: "dmg", arch: ["arm64", "x64"] },
-      { target: "zip", arch: ["arm64", "x64"] }, // electron-updater 需要 zip 做增量
+      {
+        target: "dmg",
+        arch: [process.env.NOWEN_MAC_ARCH === "arm64" ? "arm64" : "x64"],
+      },
+      {
+        target: "zip",
+        arch: [process.env.NOWEN_MAC_ARCH === "arm64" ? "arm64" : "x64"],
+      },
     ],
     icon: "electron/icon.png",
     category: "public.app-category.productivity",
