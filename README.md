@@ -2,7 +2,7 @@
 
 > 自托管的私有知识库，对标群晖 Note Station。
 >
-> A self-hosted private knowledge base. [English README](./README.en.md) · [作者感言](./AUTHOR_STORY.md)
+> A self-hosted private knowledge base. [English README](./README.en.md) · [作者感言](./AUTHOR_STORY.md) · [在线体验](https://note.nowen.cn/)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/Node-20%2B-green.svg)](https://nodejs.org/)
@@ -36,6 +36,16 @@ React 18 · TypeScript · Vite 5 · Tiptap 3 · Tailwind · Hono 4 · SQLite(FTS
 | 侧边栏 | 笔记列表 | 编辑器 |
 | :---: | :---: | :---: |
 | ![移动端侧边栏](./docs/screenshots/mobile-sidebar.png) | ![移动端列表](./docs/screenshots/mobile-list.png) | ![移动端编辑器](./docs/screenshots/mobile-editor.png) |
+
+## 在线体验
+
+不想本地部署？可以直接打开作者维护的官方体验站点：
+
+- 地址：<https://note.nowen.cn/>
+- 账号：`demo`
+- 密码：`demo123456`
+
+> ⚠ 体验账号为只读演示用途，数据可能被定期重置，请勿存放任何敏感或重要内容。生产使用请按下方「快速开始」自托管部署。
 
 ## 快速开始
 

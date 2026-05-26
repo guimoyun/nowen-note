@@ -2,7 +2,7 @@
 
 > A self-hosted private knowledge base, inspired by Synology Note Station.
 >
-> 自托管的私有知识库。[中文 README](./README.md) · [Author's Note](./AUTHOR_STORY.en.md)
+> 自托管的私有知识库。[中文 README](./README.md) · [Author's Note](./AUTHOR_STORY.en.md) · [Live Demo](https://note.nowen.cn/)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/Node-20%2B-green.svg)](https://nodejs.org/)
@@ -36,6 +36,16 @@ React 18 · TypeScript · Vite 5 · Tiptap 3 · Tailwind · Hono 4 · SQLite(FTS
 | Sidebar | Note list | Editor |
 | :---: | :---: | :---: |
 | ![Mobile sidebar](./docs/screenshots/mobile-sidebar.png) | ![Mobile list](./docs/screenshots/mobile-list.png) | ![Mobile editor](./docs/screenshots/mobile-editor.png) |
+
+## Live Demo
+
+Don't want to self-host yet? Try the official demo site maintained by the author:
+
+- URL: <https://note.nowen.cn/>
+- Username: `demo`
+- Password: `demo123456`
+
+> ⚠ The demo account is for read-only evaluation. Data may be reset periodically — please do not store anything sensitive or important. For real use, self-host it via the Quick Start below.
 
 ## Quick Start
 
