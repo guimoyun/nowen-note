@@ -12,6 +12,50 @@
 
 <!-- ADD_NEW_HERE -->
 
+## v1.1.6 - 2026-05-26
+
+### ✨ 新增
+
+- **release**: 将绿联 .upk 从一键全量(选项5)中移除，独立到选项10 (78bbdf6)
+- **notes**: 支持客户端生成的 UUID 作为笔记 ID（离线创建） (c8d8961)
+- **login**: 登录页支持桌面端跳过登录直接用本地 (21c9183)
+- **migration**: 本地→云端账号一键迁移（D-2/D-3 + 回滚） (f61a6a9)
+- **local-mode**: 本地模式离线读 + 同步引擎 + localStore (660489a)
+- **desktop**: Electron 桌面端框架 + 内嵌后端启动 (762e6b0)
+- **attachment-preview**: 视频/音频按扩展名兜底 + 抽屉打开时隐藏链接气泡 (33d6c61)
+- **editor-mobile**: 移动端顶栏改 iOS 风双行结构 + 桌面面包屑末段截断修复 (235db1f)
+- **frontend**: add video embed extension and rich-text video URL support (b8e3493)
+- **editor**: auto-convert '- [ ] ' / '- [x] ' to task list (5c9a916)
+- **login**: add demo mode banner with one-click credential fill (0a0c271)
+- **auth**: 新增体验账号(isDemo) 机制 (8e0ab8a)
+- **url-import**: 公众号文章一键导入笔记 (d6c7c17)
+
+### 🐛 修复
+
+- **release**: multi 模式 upk 打包前 buildx --load 各架构镜像 (7cceed0)
+- **editor**: TiptapEditor 桌面端样式/行为微调 (7b72d7d)
+- **mac-build**: 单架构构建 + .node 魔数 arch 校验，修复 Intel Mac ERR_DLOPEN_FAILED (54a9c90)
+- **release**: defer UPK_IMAGE_REF assembly until VERSION is finalized (80390c9)
+- **upk**: 改进多架构镜像查找逻辑，支持 DOCKERHUB_REPO 环境变量 (cc57a7f)
+- **VideoExtension**: 修正 NodeView props 类型为 ReactNodeViewProps，修复 tsc 报错 (1083377)
+- 绿联nas 构建包 (eb15be2)
+- **clipper**: split footer build for markdown branch to preserve source link (45402e8)
+- **update-notifier**: move useCallback before early return to fix hook order (63f2624)
+
+### 📝 文档
+
+- **readme**: 补 macOS 首次打开 ERR_DLOPEN_FAILED 的 xattr 解隔离指引 (bf108cd)
+- **readme**: sync features and changelog with Unreleased (e301e93)
+
+### 📦 构建
+
+- **upk**: 新增绿联 NAS 应用包(.upk) 打包流程 (967d00d)
+
+### 🔧 其他
+
+- **clipper**: release v0.1.3 (5d70c08)
+
+
 ## v1.1.5 - 2026-05-21
 
 ### ✨ 新增
